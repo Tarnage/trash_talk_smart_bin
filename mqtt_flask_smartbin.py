@@ -19,7 +19,7 @@ mqtt_broker = os.environ.get('MQTT_BROKER')
 mqtt_port = int(os.environ.get('MQTT_PORT'))
 mqtt_user = os.environ.get('MQTT_USER')
 mqtt_password = os.environ.get('MQTT_PASSWORD')
-mqtt_topic = os.environ.get('MQTT_TOPIC‘)
+mqtt_topic = os.environ.get('MQTT_TOPIC')
 
 
 def get_db_connection():
