@@ -3,8 +3,6 @@ import paho.mqtt.client as mqtt
 import psycopg2
 import os
 import json
-from urllib.parse import quote as url_quote 
-
 
 app = Flask(__name__)
 
@@ -46,6 +44,10 @@ def init_mqtt():
     client.connect(mqtt_broker, mqtt_port, 60)
     client.subscribe(mqtt_topic)
     client.loop_start()
+
+@app.route('/')
+def home():
+    return "Welcome to the Flask MQTT Application!"
 
 @app.route('/get_bin_data', methods=['GET'])
 def get_bin_data():
