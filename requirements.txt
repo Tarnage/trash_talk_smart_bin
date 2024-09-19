@@ -2,3 +2,4 @@ Flask==2.0.1
 psycopg2==2.9.1
 paho-mqtt==1.6.1
 gunicorn==20.1.0
+werkzeug==1.0.1
