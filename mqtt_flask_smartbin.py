@@ -3,6 +3,8 @@ import paho.mqtt.client as mqtt
 import psycopg2
 import os
 import json
+from urllib.parse import quote as url_quote 
+
 
 app = Flask(__name__)
 
