@@ -1,0 +1,1 @@
+python3 mqtt_flask_smartbin.py
