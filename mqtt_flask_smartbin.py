@@ -54,15 +54,26 @@ def on_message(client, userdata, message):
             app.logger.error("Failed to insert data into database.")
     except Exception as e:
         app.logger.error(f"Error processing message: {e}")
+#
+# def init_mqtt():
+#   """Initialize and start the MQTT client."""
+#   client = mqtt.Client()
+#   client.username_pw_set(mqtt_user, mqtt_password)
+#   client.connect(mqtt_broker, mqtt_port, 60)
+#   client.subscribe(mqtt_topic)
+#   client.loop_start()
+
 
 def init_mqtt():
-    """Initialize and start the MQTT client."""
     client = mqtt.Client()
-    client.username_pw_set(mqtt_user, mqtt_password)
+    if mqtt_user and mqtt_password:
+        client.username_pw_set(mqtt_user, mqtt_password)
+
     client.on_message = on_message
     client.connect(mqtt_broker, mqtt_port, 60)
     client.subscribe(mqtt_topic)
     client.loop_start()
+
 
 @app.route('/')
 def home():
