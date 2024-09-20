@@ -33,48 +33,68 @@ def get_db_connection():
         return None
 
 def on_message(client, userdata, message):
-    # handle message from MQTT server
-    payload = json.loads(message.payload.decode())
+    """Callback function for processing incoming MQTT messages."""
+    try:
+        # Decode the payload and load as JSON
+        payload = json.loads(message.payload.decode())
 
-    # insert data into database
-    bin_id = payload.get('bin_id')
-    latitude = payload.get('latitude')
-    longitude = payload.get('longitude')
-    collection_frequency_per_month = payload.get('collection_frequency_per_month')
-    average_collection_time_days = payload.get('average_collection_time_days')
-    tilt_status = payload.get('tilt_status')
-    fill_level_percentage = payload.get('fill_level_percentage')
-    temperature_celsius = payload.get('temperature_celsius')
-    displacement = payload.get('displacement')
-    days_since_last_emptied = payload.get('days_since_last_emptied')
-    communication_status = payload.get('communication_status')
-    battery_level_percentage = payload.get('battery_level_percentage')
+        # Extract relevant fields from the payload
+        bin_id = payload.get('bin_id')
+        latitude = payload.get('latitude')
+        longitude = payload.get('longitude')
+        collection_frequency_per_month = payload.get('collection_frequency_per_month')
+        average_collection_time_days = payload.get('average_collection_time_days')
+        tilt_status = payload.get('tilt_status')
+        fill_level_percentage = payload.get('fill_level_percentage')
+        temperature_celsius = payload.get('temperature_celsius')
+        displacement = payload.get('displacement')
+        days_since_last_emptied = payload.get('days_since_last_emptied')
+        communication_status = payload.get('communication_status')
+        battery_level_percentage = payload.get('battery_level_percentage')
 
+        # Establish a database connection
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor()
 
-    conn = init_db()
-    cursor = conn.cursor()
+            # Use INSERT ON CONFLICT to handle duplicates
+            insert_query = """
+            INSERT INTO smartbin.mockdata (
+                bin_id, latitude, longitude, collection_frequency_per_month, 
+                average_collection_time_days, tilt_status, fill_level_percentage, 
+                temperature_celsius, displacement, days_since_last_emptied, 
+                communication_status, battery_level_percentage
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (bin_id) DO UPDATE SET
+                latitude = EXCLUDED.latitude,
+                longitude = EXCLUDED.longitude,
+                collection_frequency_per_month = EXCLUDED.collection_frequency_per_month,
+                average_collection_time_days = EXCLUDED.average_collection_time_days,
+                tilt_status = EXCLUDED.tilt_status,
+                fill_level_percentage = EXCLUDED.fill_level_percentage,
+                temperature_celsius = EXCLUDED.temperature_celsius,
+                displacement = EXCLUDED.displacement,
+                days_since_last_emptied = EXCLUDED.days_since_last_emptied,
+                communication_status = EXCLUDED.communication_status,
+                battery_level_percentage = EXCLUDED.battery_level_percentage
+            """
+            cursor.execute(insert_query, (
+                bin_id, latitude, longitude, 
+                collection_frequency_per_month, average_collection_time_days, 
+                tilt_status, fill_level_percentage, 
+                temperature_celsius, displacement, 
+                days_since_last_emptied, communication_status, 
+                battery_level_percentage
+            ))
 
-    # insert into database
-    insert_query = """
-    INSERT INTO smartbin.mockdata (
-        bin_id, latitude, longitude, collection_frequency_per_month, 
-        average_collection_time_days, tilt_status, fill_level_percentage, 
-        temperature_celsius, displacement, days_since_last_emptied, 
-        communication_status, battery_level_percentage
-    ) 
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """
-    
-    cursor.execute(insert_query, (
-        bin_id, latitude, longitude, collection_frequency_per_month, 
-        average_collection_time_days, tilt_status, fill_level_percentage, 
-        temperature_celsius, displacement, days_since_last_emptied, 
-        communication_status, battery_level_percentage
-    ))
+            conn.commit()  # Commit the transaction
+            cursor.close()  # Close the cursor
+            conn.close()    # Close the connection
+        else:
+            app.logger.error("Failed to connect to the database.")
+    except Exception as e:
+        app.logger.error(f"Error processing message: {e}")
 
-    conn.commit()
-    cursor.close()
-    conn.close()
 
 #
 # def init_mqtt():
