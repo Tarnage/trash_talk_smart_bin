@@ -22,6 +22,7 @@ mqtt_password = os.environ.get('MQTT_PASSWORD')
 mqtt_topic = os.environ.get('MQTT_TOPIC')
 
 
+# MQTT callback functions
 def get_db_connection():
     """Create and return a new database connection."""
     try:
@@ -32,28 +33,49 @@ def get_db_connection():
         return None
 
 def on_message(client, userdata, message):
-    """Callback function for processing incoming MQTT messages."""
-    try:
-        payload = json.loads(message.payload.decode())
-        bin_id = payload.get('bin_id')
-        fill_level = payload.get('fill_level_percentage')
+    # handle message from MQTT server
+    payload = json.loads(message.payload.decode())
 
-        if bin_id is None or fill_level is None:
-            app.logger.warning("Received invalid payload: %s", payload)
-            return
+    # insert data into database
+    bin_id = payload.get('bin_id')
+    latitude = payload.get('latitude')
+    longitude = payload.get('longitude')
+    collection_frequency_per_month = payload.get('collection_frequency_per_month')
+    average_collection_time_days = payload.get('average_collection_time_days')
+    tilt_status = payload.get('tilt_status')
+    fill_level_percentage = payload.get('fill_level_percentage')
+    temperature_celsius = payload.get('temperature_celsius')
+    displacement = payload.get('displacement')
+    days_since_last_emptied = payload.get('days_since_last_emptied')
+    communication_status = payload.get('communication_status')
+    battery_level_percentage = payload.get('battery_level_percentage')
 
-        conn = get_db_connection()
-        if conn:
-            cursor = conn.cursor()
-            insert_query = """INSERT INTO smartbin.mockdata (bin_id, fill_level_percentage) VALUES (%s, %s)"""
-            cursor.execute(insert_query, (bin_id, fill_level))
-            conn.commit()
-            cursor.close()
-            conn.close()
-        else:
-            app.logger.error("Failed to insert data into database.")
-    except Exception as e:
-        app.logger.error(f"Error processing message: {e}")
+
+    conn = init_db()
+    cursor = conn.cursor()
+
+    # insert into database
+    insert_query = """
+    INSERT INTO smartbin.mockdata (
+        bin_id, latitude, longitude, collection_frequency_per_month, 
+        average_collection_time_days, tilt_status, fill_level_percentage, 
+        temperature_celsius, displacement, days_since_last_emptied, 
+        communication_status, battery_level_percentage
+    ) 
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    
+    cursor.execute(insert_query, (
+        bin_id, latitude, longitude, collection_frequency_per_month, 
+        average_collection_time_days, tilt_status, fill_level_percentage, 
+        temperature_celsius, displacement, days_since_last_emptied, 
+        communication_status, battery_level_percentage
+    ))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 #
 # def init_mqtt():
 #   """Initialize and start the MQTT client."""
