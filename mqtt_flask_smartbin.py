@@ -141,26 +141,55 @@ def post_bin_data():
         if not data:
             return jsonify({"error": "No data provided"}), 400
 
+        # Extract all relevant fields
         bin_id = data.get('bin_id')
-        fill_level = data.get('fill_level_percentage')
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        collection_frequency_per_month = data.get('collection_frequency_per_month')
+        average_collection_time_days = data.get('average_collection_time_days')
+        tilt_status = data.get('tilt_status')
+        fill_level_percentage = data.get('fill_level_percentage')
+        temperature_celsius = data.get('temperature_celsius')
+        displacement = data.get('displacement')
+        days_since_last_emptied = data.get('days_since_last_emptied')
+        communication_status = data.get('communication_status')
+        battery_level_percentage = data.get('battery_level_percentage')
 
-        if bin_id is None or fill_level is None:
+        if bin_id is None or fill_level_percentage is None:
             return jsonify({"error": "Invalid data"}), 400
 
+        # Insert data into the database
         conn = get_db_connection()
         if conn:
             cursor = conn.cursor()
-            insert_query = """INSERT INTO smartbin.mockdata (bin_id, fill_level_percentage) VALUES (%s, %s)"""
-            cursor.execute(insert_query, (bin_id, fill_level))
-            conn.commit()
-            cursor.close()
-            conn.close()
+            insert_query = """
+            INSERT INTO smartbin.mockdata (
+                bin_id, latitude, longitude, 
+                collection_frequency_per_month, average_collection_time_days, 
+                tilt_status, fill_level_percentage, 
+                temperature_celsius, displacement, 
+                days_since_last_emptied, communication_status, 
+                battery_level_percentage
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (
+                bin_id, latitude, longitude, 
+                collection_frequency_per_month, average_collection_time_days, 
+                tilt_status, fill_level_percentage, 
+                temperature_celsius, displacement, 
+                days_since_last_emptied, communication_status, 
+                battery_level_percentage
+            ))
+            conn.commit()  # Commit the transaction
+            cursor.close()  # Close the cursor
+            conn.close()    # Close the connection
             return jsonify({"status": "success"}), 200
         else:
             return jsonify({"error": "Database connection error"}), 500
     except Exception as e:
         app.logger.error(f"Error processing POST request: {e}")
         return jsonify({"error": "Internal server error"}), 500
+
 
 if __name__ == "__main__":
     init_mqtt()
