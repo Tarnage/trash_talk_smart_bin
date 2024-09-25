@@ -1,5 +1,5 @@
 Flask
 paho-mqtt
 gunicorn
-SQLAlchemy
 psycopg2-binary
+Flask-SQLAlchemy
