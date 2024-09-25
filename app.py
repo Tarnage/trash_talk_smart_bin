@@ -14,6 +14,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+# Define SmartBinData model
 class SmartBinData(db.Model):
     __tablename__ = 'mockdata'
     bin_id = db.Column(db.String(10), primary_key=True, nullable=False)
@@ -29,7 +30,14 @@ class SmartBinData(db.Model):
     communication_status = db.Column(db.String(20))
     battery_level_percentage = db.Column(db.Numeric(4, 2))
 
+# Route to check if the app is running
+@app.route('/')
+def index():
+    return "SmartBin Flask App is running!"
+
 if __name__ == "__main__":
+    # Default to port 6969, but allow PORT environment variable to override
+    port = int(os.environ.get('PORT', 6969))
     with app.app_context():
-        db.create_all()
-    app.run(host='0.0.0.0', port=6969, debug=True)
+        db.create_all()  # Ensure all tables are created
+    app.run(host='0.0.0.0', port=port)
