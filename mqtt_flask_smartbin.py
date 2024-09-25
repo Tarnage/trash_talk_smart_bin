@@ -150,6 +150,7 @@ def init_mqtt():
 
 
 if __name__ == "__main__":
-    db.create_all()  # Create tables if not exist
+    with app.app_context():
+        db.create_all()  # Create tables if not exist
     init_mqtt()
     app.run(host='0.0.0.0', port=6969, debug=True)
