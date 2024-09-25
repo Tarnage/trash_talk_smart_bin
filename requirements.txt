@@ -1,3 +1,4 @@
 Flask
 paho-mqtt
 psycopg2-binary
+Flask-SQLAlchemy
