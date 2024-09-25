@@ -118,12 +118,13 @@ def on_message(client, userdata, message):
         app.logger.error(f"Error processing message: {e}")
 
 
-def on_connect(client, userdata, flags, reason_code, properties):
-    if reason_code.is_failure:
+def on_connect(client, userdata, flags, reason_code, properties=None):
+    if reason_code != 0:
         app.logger.warning(f"Failed to connect: {reason_code}. loop_forever() will retry connection")
     else:
-        app.logger.info(f"Subscribed to {mqtt_topic}")
+        app.logger.info(f"Connected to broker and subscribed to {mqtt_topic}")
         client.subscribe(mqtt_topic)
+
 
 
 def on_subscribe(client, userdata, mid, reason_code_list, properties):
