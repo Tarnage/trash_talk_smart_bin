@@ -12,7 +12,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 # MQTT configuration from environment variables
 mqtt_broker = os.environ.get('MQTT_BROKER')
-mqtt_port = int(os.environ.get('MQTT_PORT', 1883))  # Set default to 1883 if not provided
+mqtt_port = int(os.environ.get('MQTT_PORT', 1883))  # Default to 1883 if not provided
 mqtt_user = os.environ.get('MQTT_USER')
 mqtt_password = os.environ.get('MQTT_PASSWORD')
 mqtt_topic = os.environ.get('MQTT_TOPIC')
@@ -111,12 +111,13 @@ def start_mqtt():
     mqtt_thread.daemon = True  # Ensures this thread will be killed when the main thread exits
     mqtt_thread.start()
 
-# Start MQTT when Flask app starts
-@app.before_first_request
-def before_first_request_func():
+# Modify the app.run to ensure MQTT starts properly
+if __name__ != "__main__":
     logging.debug("Starting MQTT client...")
     start_mqtt()
 
+# If running the app directly, start Flask and MQTT
 if __name__ == "__main__":
     logging.debug("Starting Flask app...")
+    start_mqtt()
     app.run(host='0.0.0.0', port=5000)
