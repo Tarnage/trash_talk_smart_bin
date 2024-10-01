@@ -31,16 +31,6 @@ PROPERTIES = [
     "communication_status", "battery_level_percentage"
 ]
 
-# def decode_payload(payload):
-#     try:
-#         message = json.loads(payload)
-#         decoded_bytes = base64.b64decode(message['downlink_queued']['frm_payload']).decode('utf-8')
-#         logging.debug(f"Decoded bytes: {decoded_bytes}")
-#         return json.loads(decoded_bytes)
-#     except Exception as e:
-#         logging.error(f"Error decoding payload: {e}")
-#         return None
-
 def decode_payload(payload):
     try:
         message = json.loads(payload)
@@ -60,7 +50,6 @@ def decode_payload(payload):
         logging.error(f"Error decoding payload: {e}")
         return None
 
-
 def on_message(client, userdata, message):
     # Log the received raw MQTT message
     logging.debug(f"Received raw MQTT message: {message.payload}")
@@ -79,18 +68,27 @@ def on_message(client, userdata, message):
         if not bin_id:
             logging.debug("Missing bin_id in payload.")
             return
-
+        
+        logging.debug(f"Looking up bin_id: {bin_id}")
         existing_bin = SmartBinData.query.filter_by(bin_id=bin_id).first()
         if existing_bin:
+            logging.debug(f"Updating existing bin with ID: {bin_id}")
             for key, value in payload.items():
                 if key in PROPERTIES:
+                    logging.debug(f"Setting {key} to {value} for bin ID {bin_id}")
                     setattr(existing_bin, key, value)
+            logging.debug(f"Updated bin: {existing_bin.__dict__}")
         else:
+            logging.debug(f"Creating new bin with ID: {bin_id}")
             new_bin = SmartBinData(**{k: v for k, v in payload.items() if k in PROPERTIES})
             db.session.add(new_bin)
 
-        db.session.commit()
-        logging.debug("Data inserted/updated successfully.")
+        try:
+            db.session.commit()
+            logging.debug("Data inserted/updated successfully.")
+        except Exception as e:
+            logging.error(f"Error committing data to the database: {e}")
+            db.session.rollback()  # Rollback session in case of error
 
 def on_connect(client, userdata, flags, reason_code, properties=None):
     logging.debug(f"Connection result code: {reason_code}")
@@ -102,9 +100,9 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
         if result == mqtt.MQTT_ERR_SUCCESS:
             logging.debug(f"Subscribed to {mqtt_topic} successfully.")
         else:
-            logging.debug(f"Failed to subscribe to {mqtt_topic}, result code: {result}")
+            logging.error(f"Failed to subscribe to {mqtt_topic}, result code: {result}")
     else:
-        logging.debug(f"Failed to connect, reason code: {reason_code}")
+        logging.error(f"Failed to connect, reason code: {reason_code}")
 
 def mqtt_loop():
     client = mqtt.Client()
