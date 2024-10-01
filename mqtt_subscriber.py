@@ -30,7 +30,15 @@ def decode_payload(payload):
 
 def on_message(client, userdata, message):
     payload = decode_payload(message.payload)
-    if not payload:
+    
+    # 打印原始 MQTT 消息内容
+    print(f"Received raw MQTT message: {message.payload}")
+    
+    # 打印解码后的 payload
+    if payload:
+        print(f"Decoded payload: {payload}")
+    else:
+        print("Payload could not be decoded.")
         return
 
     with app.app_context():
