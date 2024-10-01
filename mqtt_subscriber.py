@@ -5,18 +5,19 @@ import base64
 from app import app, db, SmartBinData
 import logging
 import sys
+from threading import Thread
 
 # Setup logging to print to stdout
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 # MQTT configuration from environment variables
 mqtt_broker = os.environ.get('MQTT_BROKER')
-mqtt_port = int(os.environ.get('MQTT_PORT'))
+mqtt_port = int(os.environ.get('MQTT_PORT', 1883))  # Default to 1883 if not provided
 mqtt_user = os.environ.get('MQTT_USER')
 mqtt_password = os.environ.get('MQTT_PASSWORD')
 mqtt_topic = os.environ.get('MQTT_TOPIC')
 
-# Print environment variables to confirm they are being loaded correctly
+# Log environment variables to confirm they are being loaded correctly
 logging.debug(f"MQTT Broker: {mqtt_broker}")
 logging.debug(f"MQTT Port: {mqtt_port}")
 logging.debug(f"MQTT Topic: {mqtt_topic}")
@@ -85,7 +86,7 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
     else:
         logging.debug(f"Failed to connect, reason code: {reason_code}")
 
-def init_mqtt():
+def mqtt_loop():
     client = mqtt.Client()
 
     client.on_message = on_message
@@ -98,9 +99,26 @@ def init_mqtt():
         client.username_pw_set(mqtt_user, mqtt_password)
 
     logging.debug("Connecting to broker...")
-    client.connect(mqtt_broker, mqtt_port, 60)
-    client.loop_start()
+    try:
+        client.connect(mqtt_broker, mqtt_port, 60)
+    except Exception as e:
+        logging.error(f"Unable to connect to MQTT broker: {e}")
+        return
 
+    client.loop_forever()
+
+def start_mqtt():
+    mqtt_thread = Thread(target=mqtt_loop)
+    mqtt_thread.daemon = True  # Ensures this thread will be killed when the main thread exits
+    mqtt_thread.start()
+
+# Modify the app.run to ensure MQTT starts properly
+if __name__ != "__main__":
+    logging.debug("Starting MQTT client...")
+    start_mqtt()
+
+# If running the app directly, start Flask and MQTT
 if __name__ == "__main__":
-    logging.debug("Initializing MQTT client...")
-    init_mqtt()
+    logging.debug("Starting Flask app...")
+    start_mqtt()
+    app.run(host='0.0.0.0', port=5000)
