@@ -17,6 +17,7 @@ db = SQLAlchemy(app)
 # Define SmartBinData model
 class SmartBinData(db.Model):
     __tablename__ = 'mockdata'
+    __table_args__ = {'schema': 'smartbin'}  # Specify the schema if needed
     bin_id = db.Column(db.String(10), primary_key=True, nullable=False)
     latitude = db.Column(db.Numeric(12, 8))
     longitude = db.Column(db.Numeric(12, 8))
