@@ -29,12 +29,12 @@ def decode_payload(payload):
         return None
 
 def on_message(client, userdata, message):
-    payload = decode_payload(message.payload)
-    
-    # 打印原始 MQTT 消息内容
+    # Print raw MQTT message for debugging
     print(f"Received raw MQTT message: {message.payload}")
     
-    # 打印解码后的 payload
+    # Decode payload
+    payload = decode_payload(message.payload)
+    
     if payload:
         print(f"Decoded payload: {payload}")
     else:
@@ -61,14 +61,24 @@ def on_message(client, userdata, message):
 
 def on_connect(client, userdata, flags, reason_code, properties=None):
     if reason_code == 0:
-        print(f"Connected to broker and subscribed to {mqtt_topic}")
-        client.subscribe(mqtt_topic)
+        print(f"Connected to broker at {mqtt_broker}:{mqtt_port}")
+        # Attempt to subscribe and check result
+        result, mid = client.subscribe(mqtt_topic)
+        if result == mqtt.MQTT_ERR_SUCCESS:
+            print(f"Subscribed to {mqtt_topic} successfully.")
+        else:
+            print(f"Failed to subscribe to {mqtt_topic}, result code: {result}")
+    else:
+        print(f"Failed to connect to MQTT broker, reason code: {reason_code}")
 
 def init_mqtt():
     client = mqtt.Client()
 
     client.on_message = on_message
     client.on_connect = on_connect
+
+    # Enable logging for debugging purposes
+    client.enable_logger()
 
     if mqtt_user and mqtt_password:
         client.username_pw_set(mqtt_user, mqtt_password)
