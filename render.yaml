@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: flask-mqtt-app
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python3 mqtt_subscriber.py"
+    plan: free
+    port: 5000
+    envVars:
+      - key: DB_NAME
+        value: smart_rubbish_bin
+      - key: DB_USER
+        value: steven
+      - key: DB_PASSWORD
+        value: Uwa24291799
+      - key: DB_HOST
+        value: staging-tech-co.cwyt4wjkryyg.ap-southeast-1.rds.amazonaws.com
+      - key: MQTT_BROKER
+        value: au1.cloud.thethings.network
+      - key: MQTT_PORT
+        value: '8883'
+      - key: MQTT_USER
+        value: smart-bin-mqtt-server@ttn
+      - key: MQTT_PASSWORD
+        value: NNSXS.3ABUT5CGLUGUX7FU7OOVSRFSMLMMPOF4NET5DNQ.TZD47RW7GO54J3BJSKAO7SXVRCCVH75GWSTTOX6P7ZLKLJ7BFPEA
