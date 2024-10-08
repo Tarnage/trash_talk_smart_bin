@@ -31,31 +31,31 @@ PROPERTIES = [
     "communication_status", "battery_level_percentage"
 ]
 
-def decode_payload(payload):
-    try:
-        message = json.loads(payload)
-        # Decode the base64 payload
-        decoded_bytes = base64.b64decode(message['downlink_queued']['frm_payload']).decode('utf-8')
-        logging.debug(f"Decoded bytes: {decoded_bytes}")
+# def decode_payload(payload):
+#     try:
+#         message = json.loads(payload)
+#         # Decode the base64 payload
+#         decoded_bytes = base64.b64decode(message['downlink_queued']['frm_payload']).decode('utf-8')
+#         logging.debug(f"Decoded bytes: {decoded_bytes}")
 
-        # Remove any extraneous characters (like '-n') before parsing
-        if decoded_bytes.startswith('-n '):
-            decoded_bytes = decoded_bytes[3:]  # Remove the '-n ' prefix
+#         # Remove any extraneous characters (like '-n') before parsing
+#         if decoded_bytes.startswith('-n '):
+#             decoded_bytes = decoded_bytes[3:]  # Remove the '-n ' prefix
 
-        return json.loads(decoded_bytes)
-    except json.JSONDecodeError as e:
-        logging.error(f"JSON decoding error: {e} - payload: {decoded_bytes}")
-        return None
-    except Exception as e:
-        logging.error(f"Error decoding payload: {e}")
-        return None
+#         return json.loads(decoded_bytes)
+#     except json.JSONDecodeError as e:
+#         logging.error(f"JSON decoding error: {e} - payload: {decoded_bytes}")
+#         return None
+#     except Exception as e:
+#         logging.error(f"Error decoding payload: {e}")
+#         return None
 
 def on_message(client, userdata, message):
     # Log the received raw MQTT message
     logging.debug(f"Received raw MQTT message: {message.payload}")
     
     # Decode payload
-    payload = decode_payload(message.payload)
+    payload = json.loads(message.payload)
     
     if payload:
         logging.debug(f"Decoded payload: {payload}")
