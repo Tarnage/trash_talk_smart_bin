@@ -31,64 +31,68 @@ PROPERTIES = [
     "communication_status", "battery_level_percentage"
 ]
 
-# def decode_payload(payload):
-#     try:
-#         message = json.loads(payload)
-#         # Decode the base64 payload
-#         decoded_bytes = base64.b64decode(message['downlink_queued']['frm_payload']).decode('utf-8')
-#         logging.debug(f"Decoded bytes: {decoded_bytes}")
+def decode_payload(payload):
+    try:
+        message = json.loads(payload)
+        # Decode the base64 payload
+        decoded_bytes = base64.b64decode(message['downlink_queued']['frm_payload']).decode('utf-8')
+        logging.debug(f"Decoded bytes: {decoded_bytes}")
 
-#         # Remove any extraneous characters (like '-n') before parsing
-#         if decoded_bytes.startswith('-n '):
-#             decoded_bytes = decoded_bytes[3:]  # Remove the '-n ' prefix
+        # Remove any extraneous characters (like '-n') before parsing
+        if decoded_bytes.startswith('-n '):
+            decoded_bytes = decoded_bytes[3:]  # Remove the '-n ' prefix
 
-#         return json.loads(decoded_bytes)
-#     except json.JSONDecodeError as e:
-#         logging.error(f"JSON decoding error: {e} - payload: {decoded_bytes}")
-#         return None
-#     except Exception as e:
-#         logging.error(f"Error decoding payload: {e}")
-#         return None
+        return json.loads(decoded_bytes)
+    except json.JSONDecodeError as e:
+        logging.error(f"JSON decoding error: {e} - payload: {payload}")
+        return None
+    except Exception as e:
+        logging.error(f"Error decoding payload: {e}")
+        return None
 
 def on_message(client, userdata, message):
     # Log the received raw MQTT message
     logging.debug(f"Received raw MQTT message: {message.payload}")
-    
-    # Decode payload
-    payload = json.loads(message.payload)
-    
+
+    try:
+        # Try to decode the message as JSON first
+        payload = json.loads(message.payload)
+        logging.debug(f"Decoded JSON payload: {payload}")
+    except json.JSONDecodeError:
+        # If decoding fails, treat the message as plain text
+        logging.debug("Received plain text message.")
+        plain_text_message = message.payload.decode('utf-8')
+        # You might need to process plain text here
+        payload = {'message': plain_text_message}  # Wrap it in a dictionary for consistency
+
+    # Process the payload
     if payload:
-        logging.debug(f"Decoded payload: {payload}")
-    else:
-        logging.debug("Payload could not be decoded.")
-        return
+        with app.app_context():
+            bin_id = payload.get('bin_id')
+            if not bin_id:
+                logging.debug("Missing bin_id in payload.")
+                return
+            
+            logging.debug(f"Looking up bin_id: {bin_id}")
+            existing_bin = SmartBinData.query.filter_by(bin_id=bin_id).first()
+            if existing_bin:
+                logging.debug(f"Updating existing bin with ID: {bin_id}")
+                for key, value in payload.items():
+                    if key in PROPERTIES:
+                        logging.debug(f"Setting {key} to {value} for bin ID {bin_id}")
+                        setattr(existing_bin, key, value)
+                logging.debug(f"Updated bin: {existing_bin.__dict__}")
+            else:
+                logging.debug(f"Creating new bin with ID: {bin_id}")
+                new_bin = SmartBinData(**{k: v for k, v in payload.items() if k in PROPERTIES})
+                db.session.add(new_bin)
 
-    with app.app_context():
-        bin_id = payload.get('bin_id')
-        if not bin_id:
-            logging.debug("Missing bin_id in payload.")
-            return
-        
-        logging.debug(f"Looking up bin_id: {bin_id}")
-        existing_bin = SmartBinData.query.filter_by(bin_id=bin_id).first()
-        if existing_bin:
-            logging.debug(f"Updating existing bin with ID: {bin_id}")
-            for key, value in payload.items():
-                if key in PROPERTIES:
-                    logging.debug(f"Setting {key} to {value} for bin ID {bin_id}")
-                    setattr(existing_bin, key, value)
-            logging.debug(f"Updated bin: {existing_bin.__dict__}")
-        else:
-            logging.debug(f"Creating new bin with ID: {bin_id}")
-            new_bin = SmartBinData(**{k: v for k, v in payload.items() if k in PROPERTIES})
-            db.session.add(new_bin)
-
-        try:
-            db.session.commit()
-            logging.debug("Data inserted/updated successfully.")
-        except Exception as e:
-            logging.error(f"Error committing data to the database: {e}")
-            db.session.rollback()  # Rollback session in case of error
+            try:
+                db.session.commit()
+                logging.debug("Data inserted/updated successfully.")
+            except Exception as e:
+                logging.error(f"Error committing data to the database: {e}")
+                db.session.rollback()  # Rollback session in case of error
 
 def on_connect(client, userdata, flags, reason_code, properties=None):
     logging.debug(f"Connection result code: {reason_code}")
