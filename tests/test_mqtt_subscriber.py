@@ -7,6 +7,7 @@ from mqtt_subscriber import decode_payload, is_valid_payload, on_message
 class TestMQTTSubscriber(unittest.TestCase):
 
     def test_decode_payload_valid(self):
+        # Test decoding a valid payload
         valid_payload = {
             "downlink_queued": {
                 "frm_payload": "eyJiaW5faWQiOiAiYmluMTIzIiwgImZpbGxfbGV2ZWxfcGVyY2VudGFnZSI6ICIxNSIsICJiYXR0ZXJ5X2xldmVsX3BlcmNlbnRhZ2UiOiAiODAiLCAidGVtcGVyYXR1cmVfY2Vsc2l1cyI6ICIzMCJ9"
@@ -24,11 +25,13 @@ class TestMQTTSubscriber(unittest.TestCase):
         self.assertEqual(decoded_payload, expected_decoded)
 
     def test_decode_payload_invalid_json(self):
+        # Test decoding an invalid JSON payload
         invalid_payload = "invalid json"
         decoded_payload = decode_payload(invalid_payload)
         self.assertIsNone(decoded_payload)
 
     def test_is_valid_payload_valid(self):
+        # Test validation of a valid payload
         valid_payload = {
             "bin_id": "1",
             "fill_level_percentage": 50.0,
@@ -39,6 +42,7 @@ class TestMQTTSubscriber(unittest.TestCase):
         self.assertTrue(is_valid)
 
     def test_is_valid_payload_invalid(self):
+        # Test validation of an invalid payload
         invalid_payload = {
             "bin_id": "",
             "fill_level_percentage": 150.0,  # Invalid fill level
@@ -51,6 +55,7 @@ class TestMQTTSubscriber(unittest.TestCase):
     @patch('mqtt_subscriber.db.session')
     @patch('mqtt_subscriber.SmartBinData.query')
     def test_on_message_create_new_bin(self, mock_query, mock_db_session):
+        # Test creating a new bin entry
         payload = {
             "bin_id": "2",
             "latitude": 33.45772,
@@ -76,6 +81,7 @@ class TestMQTTSubscriber(unittest.TestCase):
     @patch('mqtt_subscriber.db.session')
     @patch('mqtt_subscriber.SmartBinData.query')
     def test_on_message_update_existing_bin(self, mock_query, mock_db_session):
+        # Test updating an existing bin entry
         payload = {
             "bin_id": "1",
             "fill_level_percentage": 85.0,
@@ -93,7 +99,7 @@ class TestMQTTSubscriber(unittest.TestCase):
             self.assertEqual(mock_existing_bin.temperature_celsius, 22.0)
 
     def test_decode_payload_error_handling(self):
-        """Test decode_payload for error handling with invalid Base64."""
+        # Test error handling for invalid Base64 decoding
         invalid_payload = json.dumps({
             "downlink_queued": {"frm_payload": "invalid_base64"}
         })
