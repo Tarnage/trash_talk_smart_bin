@@ -76,6 +76,39 @@ The application uses the following environment variables:
 - `GET /`: Check if the application is running
 - (Add other API endpoints as implemented in your Flask app)
 
+## Testing
+The project includes comprehensive unit tests for both the Flask application and the MQTT subscriber. These tests ensure the correct functionality of data processing, payload validation, and database operations.
+
+### Running Tests
+To run the tests, use the following commands:
+
+1. For MQTT subscriber tests:
+   ```
+   python -m unittest tests.test_mqtt_subscriber
+   ```
+
+2. For Flask application tests:
+   ```
+   python -m unittest tests.test_flask_app
+   ```
+
+### Test Coverage
+The unit tests cover the following areas:
+
+#### MQTT Subscriber Tests
+- Payload decoding
+- Payload validation
+- Message handling (creating new bins and updating existing bins)
+- Error handling for invalid payloads
+
+#### Flask Application Tests
+- Index route functionality
+
+To run all tests together, you can use:
+```
+python -m unittest discover tests
+```
+
 ## Contributing
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
