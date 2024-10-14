@@ -4,6 +4,23 @@ import os
 
 db = SQLAlchemy()
 
+# Define SmartBinData model
+class SmartBinData(db.Model):
+    __tablename__ = 'mockdata'
+    __table_args__ = {'schema': 'smartbin'}  # Specify the schema if needed
+    bin_id = db.Column(db.String(10), primary_key=True, nullable=False)
+    latitude = db.Column(db.Numeric(12, 8))
+    longitude = db.Column(db.Numeric(12, 8))
+    collection_frequency_per_month = db.Column(db.Integer)
+    average_collection_time_days = db.Column(db.Integer)
+    tilt_status = db.Column(db.String(20))
+    fill_level_percentage = db.Column(db.Numeric(5, 2))
+    temperature_celsius = db.Column(db.Numeric(5, 2))
+    displacement = db.Column(db.String(20))
+    days_since_last_emptied = db.Column(db.Integer)
+    communication_status = db.Column(db.String(20))
+    battery_level_percentage = db.Column(db.Numeric(4, 2))
+
 def create_app():
     app = Flask(__name__)
 
@@ -20,23 +37,6 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
-
-    # Define SmartBinData model
-    class SmartBinData(db.Model):
-        __tablename__ = 'mockdata'
-        __table_args__ = {'schema': 'smartbin'}  # Specify the schema if needed
-        bin_id = db.Column(db.String(10), primary_key=True, nullable=False)
-        latitude = db.Column(db.Numeric(12, 8))
-        longitude = db.Column(db.Numeric(12, 8))
-        collection_frequency_per_month = db.Column(db.Integer)
-        average_collection_time_days = db.Column(db.Integer)
-        tilt_status = db.Column(db.String(20))
-        fill_level_percentage = db.Column(db.Numeric(5, 2))
-        temperature_celsius = db.Column(db.Numeric(5, 2))
-        displacement = db.Column(db.String(20))
-        days_since_last_emptied = db.Column(db.Integer)
-        communication_status = db.Column(db.String(20))
-        battery_level_percentage = db.Column(db.Numeric(4, 2))
 
     # Route to check if the app is running
     @app.route('/')

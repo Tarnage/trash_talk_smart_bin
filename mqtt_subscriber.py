@@ -2,10 +2,12 @@ import paho.mqtt.client as mqtt
 import os
 import json
 import base64
-from app import app, db, SmartBinData
 import logging
 import sys
 from threading import Thread
+from app import create_app, db, SmartBinData
+
+app = create_app()
 
 # Setup logging to print to stdout
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
