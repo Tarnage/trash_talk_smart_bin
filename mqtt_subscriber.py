@@ -44,32 +44,31 @@ PROPERTIES = [
 ]
 
 def is_valid_payload(payload):
-    """Validate the payload fields and types."""
-    if 'bin_id' not in payload or not payload['bin_id']:
-        logging.debug("Missing or empty bin_id in payload.")
-        return False
-
-    # Ensure bin_id is a string
-    payload['bin_id'] = str(payload['bin_id'])
-
-    required_fields = ['fill_level_percentage', 'battery_level_percentage', 'temperature_celsius']
+    required_fields = ['bin_id', 'fill_level_percentage', 'battery_level_percentage', 'temperature_celsius']
     for field in required_fields:
         if field not in payload:
             logging.debug(f"Missing required field: {field}")
             return False
 
+    if not isinstance(payload.get('bin_id'), str):
+        payload['bin_id'] = str(payload['bin_id'])
+
+    if not payload['bin_id']:
+        logging.debug("bin_id cannot be empty.")
+        return False
+
     fill_level = payload.get('fill_level_percentage')
-    if not (isinstance(fill_level, (int, float))) or not (0 <= fill_level <= 100):
+    if not (isinstance(fill_level, int) or isinstance(fill_level, float)) or not (0 <= fill_level <= 100):
         logging.debug(f"Invalid fill_level_percentage: {fill_level}")
         return False
 
     battery_level = payload.get('battery_level_percentage')
-    if not (isinstance(battery_level, (int, float))) or not (0 <= battery_level <= 100):
+    if not (isinstance(battery_level, int) or isinstance(battery_level, float)) or not (0 <= battery_level <= 100):
         logging.debug(f"Invalid battery_level_percentage: {battery_level}")
         return False
 
     temperature = payload.get('temperature_celsius')
-    if not (isinstance(temperature, (int, float))) or not (-40 <= temperature <= 85):
+    if not (isinstance(temperature, int) or isinstance(temperature, float)) or not (-40 <= temperature <= 85):
         logging.debug(f"Invalid temperature_celsius: {temperature}")
         return False
 
@@ -78,10 +77,13 @@ def is_valid_payload(payload):
 def decode_payload(payload):
     try:
         message = json.loads(payload)
-        decoded_bytes = base64.b64decode(message['downlink_queued']['frm_payload']).decode('utf-8')
+        frm_payload = message['downlink_queued']['frm_payload']
+        decoded_bytes = base64.b64decode(frm_payload).decode('utf-8')
         logging.debug(f"Decoded bytes: {decoded_bytes}")
+
         if decoded_bytes.startswith('-n '):
-            decoded_bytes = decoded_bytes[3:]  # Remove the '-n ' prefix
+            decoded_bytes = decoded_bytes[3:]
+
         return json.loads(decoded_bytes)
     except json.JSONDecodeError as e:
         logging.error(f"JSON decoding error: {e} - payload: {payload}")
@@ -97,11 +99,13 @@ def on_message(client, userdata, message):
         payload = json.loads(message.payload)
         logging.debug(f"Decoded JSON payload: {payload}")
 
-        # 提取 frm_payload 并解码
         if 'downlink_queued' in payload and 'frm_payload' in payload['downlink_queued']:
             frm_payload = payload['downlink_queued']['frm_payload']
             decoded_payload = base64.b64decode(frm_payload).decode('utf-8')
             logging.debug(f"Decoded frm_payload: {decoded_payload}")
+
+            if decoded_payload.startswith('-n '):
+                decoded_payload = decoded_payload[3:] 
             payload = json.loads(decoded_payload)
         else:
             logging.debug("No frm_payload found in the message.")
@@ -138,7 +142,6 @@ def on_message(client, userdata, message):
             except Exception as e:
                 logging.error(f"Error committing data to the database: {e}")
                 db.session.rollback()
-
 
 def on_connect(client, userdata, flags, reason_code, properties=None):
     logging.debug(f"Connection result code: {reason_code}")
