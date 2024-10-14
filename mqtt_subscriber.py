@@ -86,7 +86,15 @@ def decode_payload(payload):
         if decoded_bytes.startswith('-n '):
             decoded_bytes = decoded_bytes[3:]
 
-        return json.loads(decoded_bytes)
+        decoded_json = json.loads(decoded_bytes)
+        
+        # Convert numeric values to float
+        numeric_fields = ['fill_level_percentage', 'battery_level_percentage', 'temperature_celsius']
+        for field in numeric_fields:
+            if field in decoded_json:
+                decoded_json[field] = float(decoded_json[field])
+        
+        return decoded_json
     except json.JSONDecodeError as e:
         logging.error(f"JSON decoding error: {e} - payload: {payload}")
         return None
