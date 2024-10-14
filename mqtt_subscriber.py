@@ -45,28 +45,31 @@ PROPERTIES = [
 
 def is_valid_payload(payload):
     """Validate the payload fields and types."""
-    required_fields = ['bin_id', 'fill_level_percentage', 'battery_level_percentage', 'temperature_celsius']
+    if 'bin_id' not in payload or not payload['bin_id']:
+        logging.debug("Missing or empty bin_id in payload.")
+        return False
+
+    # Ensure bin_id is a string
+    payload['bin_id'] = str(payload['bin_id'])
+
+    required_fields = ['fill_level_percentage', 'battery_level_percentage', 'temperature_celsius']
     for field in required_fields:
         if field not in payload:
             logging.debug(f"Missing required field: {field}")
             return False
 
-    if not isinstance(payload.get('bin_id'), str):
-        logging.debug("Invalid bin_id: Must be a string.")
-        return False
-
     fill_level = payload.get('fill_level_percentage')
-    if not (isinstance(fill_level, int) or isinstance(fill_level, float)) or not (0 <= fill_level <= 100):
+    if not (isinstance(fill_level, (int, float))) or not (0 <= fill_level <= 100):
         logging.debug(f"Invalid fill_level_percentage: {fill_level}")
         return False
 
     battery_level = payload.get('battery_level_percentage')
-    if not (isinstance(battery_level, int) or isinstance(battery_level, float)) or not (0 <= battery_level <= 100):
+    if not (isinstance(battery_level, (int, float))) or not (0 <= battery_level <= 100):
         logging.debug(f"Invalid battery_level_percentage: {battery_level}")
         return False
 
     temperature = payload.get('temperature_celsius')
-    if not (isinstance(temperature, int) or isinstance(temperature, float)) or not (-40 <= temperature <= 85):
+    if not (isinstance(temperature, (int, float))) or not (-40 <= temperature <= 85):
         logging.debug(f"Invalid temperature_celsius: {temperature}")
         return False
 
@@ -101,9 +104,7 @@ def on_message(client, userdata, message):
     if payload and is_valid_payload(payload):
         with app.app_context():
             bin_id = payload.get('bin_id')
-            if not bin_id:
-                logging.debug("Missing bin_id in payload.")
-                return
+            logging.debug(f"Processing data for bin_id: {bin_id}")
             
             logging.debug(f"Looking up bin_id: {bin_id}")
             existing_bin = SmartBinData.query.filter_by(bin_id=bin_id).first()
