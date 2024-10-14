@@ -52,44 +52,22 @@ def is_valid_payload(payload):
     # Convert bin_id to string if it's not already
     payload['bin_id'] = str(payload['bin_id'])
 
-    # Check fill_level_percentage
-    fill_level = payload.get('fill_level_percentage')
-    if fill_level is not None:
-        try:
-            fill_level = float(fill_level)  # Convert to float if it's a string
-            if not (0 <= fill_level <= 100):
-                logging.debug(f"Invalid fill_level_percentage: {fill_level}")
+    # Check and convert numeric fields
+    numeric_fields = ['fill_level_percentage', 'battery_level_percentage', 'temperature_celsius']
+    for field in numeric_fields:
+        if field in payload:
+            try:
+                value = float(payload[field])
+                if field.endswith('percentage') and not (0 <= value <= 100):
+                    logging.debug(f"Invalid {field}: {value}")
+                    return False
+                if field == 'temperature_celsius' and not (-40 <= value <= 85):
+                    logging.debug(f"Invalid {field}: {value}")
+                    return False
+                payload[field] = value
+            except ValueError:
+                logging.debug(f"Invalid {field}: {payload[field]}")
                 return False
-            payload['fill_level_percentage'] = fill_level  # Store converted value back
-        except ValueError:
-            logging.debug(f"Invalid fill_level_percentage: {fill_level}")
-            return False
-
-    # Check battery_level_percentage
-    battery_level = payload.get('battery_level_percentage')
-    if battery_level is not None:
-        try:
-            battery_level = float(battery_level)  # Convert to float if it's a string
-            if not (0 <= battery_level <= 100):
-                logging.debug(f"Invalid battery_level_percentage: {battery_level}")
-                return False
-            payload['battery_level_percentage'] = battery_level  # Store converted value back
-        except ValueError:
-            logging.debug(f"Invalid battery_level_percentage: {battery_level}")
-            return False
-
-    # Check temperature_celsius
-    temperature = payload.get('temperature_celsius')
-    if temperature is not None:
-        try:
-            temperature = float(temperature)  # Convert to float if it's a string
-            if not (-40 <= temperature <= 85):
-                logging.debug(f"Invalid temperature_celsius: {temperature}")
-                return False
-            payload['temperature_celsius'] = temperature  # Store converted value back
-        except ValueError:
-            logging.debug(f"Invalid temperature_celsius: {temperature}")
-            return False
 
     return True
 
