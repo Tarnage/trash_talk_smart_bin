@@ -15,27 +15,36 @@ jobs:
       with:
         python-version: '3.12'  # Specify Python version
 
+    - name: Cache Python packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: Install dependencies
       run: |
         pip install -r requirements.txt  # Install dependencies
 
     - name: Run tests
       run: |
+        set -e
         python -m unittest discover -s tests -p "test_mqtt_subscriber.py"
         python -m unittest discover -s tests -p "test_app.py"
       env:
-        DB_HOST: ${{ secrets.DB_HOST }}              # Use DB_HOST from GitHub Secrets
-        DB_NAME: ${{ secrets.DB_NAME }}              # Use DB_NAME from GitHub Secrets
-        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}      # Use DB_PASSWORD from GitHub Secrets
-        DB_PORT: ${{ secrets.DB_PORT }}              # Use DB_PORT from GitHub Secrets
-        DB_USER: ${{ secrets.DB_USER }}              # Use DB_USER from GitHub Secrets
-        MQTT_BROKER: ${{ secrets.MQTT_BROKER }}    # Use MQTT_BROKER from GitHub Secrets
-        MQTT_PORT: ${{ secrets.MQTT_PORT }}          # Use MQTT_PORT from GitHub Secrets
-        MQTT_TOPIC: ${{ secrets.MQTT_TOPIC }}        # Use MQTT_TOPIC from GitHub Secrets
-        NODE_ENV: ${{ secrets.NODE_ENV }}            # Use NODE_ENV from GitHub Secrets
-        TTN_MQTT_BROKER: ${{ secrets.TTN_MQTT_BROKER }}  # Use TTN_MQTT_BROKER from GitHub Secrets
-        TTN_MQTT_PASSWORD: ${{ secrets.TTN_MQTT_PASSWORD }} # Use TTN_MQTT_PASSWORD from GitHub Secrets
-        TTN_MQTT_PORT: ${{ secrets.TTN_MQTT_PORT }}  # Use TTN_MQTT_PORT from GitHub Secrets
-        TTN_MQTT_TOPIC: ${{ secrets.TTN_MQTT_TOPIC }} # Use TTN_MQTT_TOPIC from GitHub Secrets
-        TTN_MQTT_USER: ${{ secrets.TTN_MQTT_USER }}   # Use TTN_MQTT_USER from GitHub Secrets
+        DB_HOST: ${{ secrets.DB_HOST }}
+        DB_NAME: ${{ secrets.DB_NAME }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        DB_PORT: ${{ secrets.DB_PORT }}
+        DB_USER: ${{ secrets.DB_USER }}
+        MQTT_BROKER: ${{ secrets.MQTT_BROKER }}
+        MQTT_PORT: ${{ secrets.MQTT_PORT }}
+        MQTT_TOPIC: ${{ secrets.MQTT_TOPIC }}
+        NODE_ENV: ${{ secrets.NODE_ENV }}
+        TTN_MQTT_BROKER: ${{ secrets.TTN_MQTT_BROKER }}
+        TTN_MQTT_PASSWORD: ${{ secrets.TTN_MQTT_PASSWORD }}
+        TTN_MQTT_PORT: ${{ secrets.TTN_MQTT_PORT }}
+        TTN_MQTT_TOPIC: ${{ secrets.TTN_MQTT_TOPIC }}
+        TTN_MQTT_USER: ${{ secrets.TTN_MQTT_USER }}
 
