@@ -111,10 +111,3 @@ python -m unittest discover tests
 
 ## Contributing
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
-## License
-<<<<<<< HEAD
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
-=======
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
->>>>>>> 25520f5 (SQLALCHEMY_DATABASE_URI)
