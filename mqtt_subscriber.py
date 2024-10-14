@@ -54,23 +54,45 @@ def is_valid_payload(payload):
 
     # Check fill_level_percentage
     fill_level = payload.get('fill_level_percentage')
-    if fill_level is not None and (not (isinstance(fill_level, int) or isinstance(fill_level, float)) or not (0 <= fill_level <= 100)):
-        logging.debug(f"Invalid fill_level_percentage: {fill_level}")
-        return False
+    if fill_level is not None:
+        try:
+            fill_level = float(fill_level)  # Convert to float if it's a string
+            if not (0 <= fill_level <= 100):
+                logging.debug(f"Invalid fill_level_percentage: {fill_level}")
+                return False
+            payload['fill_level_percentage'] = fill_level  # Store converted value back
+        except ValueError:
+            logging.debug(f"Invalid fill_level_percentage: {fill_level}")
+            return False
 
     # Check battery_level_percentage
     battery_level = payload.get('battery_level_percentage')
-    if battery_level is not None and (not (isinstance(battery_level, int) or isinstance(battery_level, float)) or not (0 <= battery_level <= 100)):
-        logging.debug(f"Invalid battery_level_percentage: {battery_level}")
-        return False
+    if battery_level is not None:
+        try:
+            battery_level = float(battery_level)  # Convert to float if it's a string
+            if not (0 <= battery_level <= 100):
+                logging.debug(f"Invalid battery_level_percentage: {battery_level}")
+                return False
+            payload['battery_level_percentage'] = battery_level  # Store converted value back
+        except ValueError:
+            logging.debug(f"Invalid battery_level_percentage: {battery_level}")
+            return False
 
     # Check temperature_celsius
     temperature = payload.get('temperature_celsius')
-    if temperature is not None and (not (isinstance(temperature, int) or isinstance(temperature, float)) or not (-40 <= temperature <= 85)):
-        logging.debug(f"Invalid temperature_celsius: {temperature}")
-        return False
+    if temperature is not None:
+        try:
+            temperature = float(temperature)  # Convert to float if it's a string
+            if not (-40 <= temperature <= 85):
+                logging.debug(f"Invalid temperature_celsius: {temperature}")
+                return False
+            payload['temperature_celsius'] = temperature  # Store converted value back
+        except ValueError:
+            logging.debug(f"Invalid temperature_celsius: {temperature}")
+            return False
 
     return True
+
 
 def decode_payload(payload):
     """Decode the incoming payload."""
