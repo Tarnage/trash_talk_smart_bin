@@ -1,13 +1,13 @@
 import unittest
 import json
 from unittest.mock import patch, MagicMock
-from mqtt_subscriber import decode_payload, is_valid_payload
+from your_flask_app import app  
+from mqtt_subscriber import decode_payload, is_valid_payload, on_message
 
 
 class TestMQTTSubscriber(unittest.TestCase):
     
     def test_decode_payload_valid(self):
-        # Test decoding a valid payload
         valid_payload = {
             "downlink_queued": {
                 "frm_payload": "eyJiaW5faWQiOiAiMSIsICJsYXRpdHVkZSI6IDMzLjQ1NzIsICJsb25naXR1ZGUiOiAtMzMuNDU3MiwgImNvbGxlY3Rpb25fZnJlZVVubG9ja2VkX3Blcm1hbWV0ZXIiOiAiMSIsICJ0aWx0X3N0YXR1cyI6ICJJbmFjdGl2ZSIsICJmaWxsIHRhcmVuYXJlcyI6ICJKdXN0ZXJzIGNhbGxlZ3UiLCAiY291bnRyeV9uYW1lIjogIlV5bGl0ZSAtIE51bWJlciIgfQ=="
@@ -26,13 +26,11 @@ class TestMQTTSubscriber(unittest.TestCase):
         self.assertEqual(decoded_payload, expected_decoded)
 
     def test_decode_payload_invalid_json(self):
-        # Test decoding an invalid JSON payload
         invalid_payload = "invalid json"
         decoded_payload = decode_payload(invalid_payload)
         self.assertIsNone(decoded_payload)
 
     def test_is_valid_payload_valid(self):
-        # Test the payload validation with valid data
         valid_payload = {
             "bin_id": "1",
             "fill_level_percentage": 50.0,
@@ -43,7 +41,6 @@ class TestMQTTSubscriber(unittest.TestCase):
         self.assertTrue(is_valid)
 
     def test_is_valid_payload_invalid(self):
-        # Test the payload validation with invalid data
         invalid_payload = {
             "bin_id": "",
             "fill_level_percentage": 150.0,
@@ -56,7 +53,6 @@ class TestMQTTSubscriber(unittest.TestCase):
     @patch('mqtt_subscriber.db.session')
     @patch('mqtt_subscriber.SmartBinData.query')
     def test_on_message_create_new_bin(self, mock_query, mock_db_session):
-        # Test creating a new bin
         payload = {
             "bin_id": "2",
             "latitude": 33.45772,
@@ -72,38 +68,31 @@ class TestMQTTSubscriber(unittest.TestCase):
             "battery_level_percentage": 90.0
         }
         
-        mock_query.filter_by.return_value.first.return_value = None  # Simulate no existing bin
-        mock_db_session.commit.return_value = None
-        
-        from mqtt_subscriber import on_message
-        on_message(None, None, MagicMock(payload=json.dumps(payload).encode('utf-8')))
-        
-        # Check if add was called
-        self.assertTrue(mock_db_session.add.called)
+        with app.app_context():  # 添加应用上下文
+            mock_query.filter_by.return_value.first.return_value = None
+            mock_db_session.commit.return_value = None
+            
+            on_message(None, None, MagicMock(payload=json.dumps(payload).encode('utf-8')))
+            self.assertTrue(mock_db_session.add.called)
 
     @patch('mqtt_subscriber.db.session')
     @patch('mqtt_subscriber.SmartBinData.query')
     def test_on_message_update_existing_bin(self, mock_query, mock_db_session):
-        # Test updating an existing bin
         payload = {
             "bin_id": "1",
             "fill_level_percentage": 85.0,
             "temperature_celsius": 22.0
         }
 
-        mock_existing_bin = MagicMock()
-        mock_query.filter_by.return_value.first.return_value = mock_existing_bin  # Simulate existing bin
-        mock_db_session.commit.return_value = None
-        
-        from mqtt_subscriber import on_message
-        on_message(None, None, MagicMock(payload=json.dumps(payload).encode('utf-8')))
-
-        # Check if commit was called
-        self.assertTrue(mock_db_session.commit.called)
-
-        # Check if attributes were set on the existing bin
-        self.assertEqual(mock_existing_bin.fill_level_percentage, 85.0)
-        self.assertEqual(mock_existing_bin.temperature_celsius, 22.0)
+        with app.app_context():  # 添加应用上下文
+            mock_existing_bin = MagicMock()
+            mock_query.filter_by.return_value.first.return_value = mock_existing_bin
+            mock_db_session.commit.return_value = None
+            
+            on_message(None, None, MagicMock(payload=json.dumps(payload).encode('utf-8')))
+            self.assertTrue(mock_db_session.commit.called)
+            self.assertEqual(mock_existing_bin.fill_level_percentage, 85.0)
+            self.assertEqual(mock_existing_bin.temperature_celsius, 22.0)
 
 
 if __name__ == '__main__':
