@@ -1,12 +1,11 @@
 import unittest
 import json
 from unittest.mock import patch, MagicMock
-from your_flask_app import app  
+from app import app  # Ensure this matches your actual Flask app module
 from mqtt_subscriber import decode_payload, is_valid_payload, on_message
 
-
 class TestMQTTSubscriber(unittest.TestCase):
-    
+
     def test_decode_payload_valid(self):
         valid_payload = {
             "downlink_queued": {
@@ -68,8 +67,8 @@ class TestMQTTSubscriber(unittest.TestCase):
             "battery_level_percentage": 90.0
         }
         
-        with app.app_context():  # 添加应用上下文
-            mock_query.filter_by.return_value.first.return_value = None
+        with app.app_context():  # Ensure Flask app context is active
+            mock_query.filter_by.return_value.first.return_value = None  # No existing bin
             mock_db_session.commit.return_value = None
             
             on_message(None, None, MagicMock(payload=json.dumps(payload).encode('utf-8')))
@@ -84,16 +83,15 @@ class TestMQTTSubscriber(unittest.TestCase):
             "temperature_celsius": 22.0
         }
 
-        with app.app_context():  # 添加应用上下文
+        with app.app_context():  # Ensure Flask app context is active
             mock_existing_bin = MagicMock()
-            mock_query.filter_by.return_value.first.return_value = mock_existing_bin
+            mock_query.filter_by.return_value.first.return_value = mock_existing_bin  # Mock existing bin
             mock_db_session.commit.return_value = None
             
             on_message(None, None, MagicMock(payload=json.dumps(payload).encode('utf-8')))
             self.assertTrue(mock_db_session.commit.called)
             self.assertEqual(mock_existing_bin.fill_level_percentage, 85.0)
             self.assertEqual(mock_existing_bin.temperature_celsius, 22.0)
-
 
 if __name__ == '__main__':
     unittest.main()
