@@ -44,37 +44,36 @@ PROPERTIES = [
 ]
 
 def is_valid_payload(payload):
-    required_fields = ['bin_id', 'fill_level_percentage', 'battery_level_percentage', 'temperature_celsius']
-    for field in required_fields:
-        if field not in payload:
-            logging.debug(f"Missing required field: {field}")
-            return False
-
-    if not isinstance(payload.get('bin_id'), str):
-        payload['bin_id'] = str(payload['bin_id'])
-
-    if not payload['bin_id']:
-        logging.debug("bin_id cannot be empty.")
+    """Validate the payload fields and types."""
+    if 'bin_id' not in payload or not payload['bin_id']:
+        logging.debug("Missing or empty bin_id in payload.")
         return False
 
+    # Convert bin_id to string if it's not already
+    payload['bin_id'] = str(payload['bin_id'])
+
+    # Check fill_level_percentage
     fill_level = payload.get('fill_level_percentage')
-    if not (isinstance(fill_level, int) or isinstance(fill_level, float)) or not (0 <= fill_level <= 100):
+    if fill_level is not None and (not (isinstance(fill_level, int) or isinstance(fill_level, float)) or not (0 <= fill_level <= 100)):
         logging.debug(f"Invalid fill_level_percentage: {fill_level}")
         return False
 
+    # Check battery_level_percentage
     battery_level = payload.get('battery_level_percentage')
-    if not (isinstance(battery_level, int) or isinstance(battery_level, float)) or not (0 <= battery_level <= 100):
+    if battery_level is not None and (not (isinstance(battery_level, int) or isinstance(battery_level, float)) or not (0 <= battery_level <= 100)):
         logging.debug(f"Invalid battery_level_percentage: {battery_level}")
         return False
 
+    # Check temperature_celsius
     temperature = payload.get('temperature_celsius')
-    if not (isinstance(temperature, int) or isinstance(temperature, float)) or not (-40 <= temperature <= 85):
+    if temperature is not None and (not (isinstance(temperature, int) or isinstance(temperature, float)) or not (-40 <= temperature <= 85)):
         logging.debug(f"Invalid temperature_celsius: {temperature}")
         return False
 
     return True
 
 def decode_payload(payload):
+    """Decode the incoming payload."""
     try:
         message = json.loads(payload)
         frm_payload = message['downlink_queued']['frm_payload']
@@ -93,6 +92,7 @@ def decode_payload(payload):
         return None
 
 def on_message(client, userdata, message):
+    """Handle incoming MQTT messages."""
     logging.debug(f"Received raw MQTT message: {message.payload}")
 
     try:
@@ -105,7 +105,7 @@ def on_message(client, userdata, message):
             logging.debug(f"Decoded frm_payload: {decoded_payload}")
 
             if decoded_payload.startswith('-n '):
-                decoded_payload = decoded_payload[3:] 
+                decoded_payload = decoded_payload[3:]
             payload = json.loads(decoded_payload)
         else:
             logging.debug("No frm_payload found in the message.")
@@ -144,6 +144,7 @@ def on_message(client, userdata, message):
                 db.session.rollback()
 
 def on_connect(client, userdata, flags, reason_code, properties=None):
+    """Handle connection to the MQTT broker."""
     logging.debug(f"Connection result code: {reason_code}")
     if reason_code == 0:
         logging.debug(f"Connected to broker at {mqtt_broker}:{mqtt_port}")
@@ -156,6 +157,7 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
         logging.error(f"Failed to connect, reason code: {reason_code}")
 
 def mqtt_loop(broker, port, user, password, topic):
+    """Run the MQTT client loop."""
     client = mqtt.Client()
 
     client.on_message = on_message
@@ -177,6 +179,7 @@ def mqtt_loop(broker, port, user, password, topic):
     client.loop_forever()
 
 def start_mqtt():
+    """Start MQTT clients in separate threads."""
     threads = []
 
     if mqtt_broker:
