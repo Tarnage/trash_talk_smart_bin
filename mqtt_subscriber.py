@@ -93,7 +93,6 @@ def is_valid_payload(payload):
 
     return True
 
-
 def decode_payload(payload):
     """Decode the incoming payload."""
     try:
