@@ -10,6 +10,31 @@ from threading import Thread
 # Setup logging to print to stdout
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
+# MQTT configuration from environment variables (Mosquitto)
+mqtt_broker = os.environ.get('MQTT_BROKER')
+mqtt_port = int(os.environ.get('MQTT_PORT', 1883))  # Default to 1883 if not provided
+mqtt_user = os.environ.get('MQTT_USER')
+mqtt_password = os.environ.get('MQTT_PASSWORD')
+mqtt_topic = os.environ.get('MQTT_TOPIC')
+
+# MQTT configuration from environment variables (TTN)
+ttn_broker = os.environ.get('TTN_MQTT_BROKER')
+ttn_port = int(os.environ.get('TTN_MQTT_PORT', 1883))  # Default to 1883 if not provided
+ttn_user = os.environ.get('TTN_MQTT_USER')
+ttn_password = os.environ.get('TTN_MQTT_PASSWORD')
+ttn_topic = os.environ.get('TTN_MQTT_TOPIC')
+
+# Log environment variables to confirm they are being loaded correctly
+logging.debug(f"MQTT Broker: {mqtt_broker}")
+logging.debug(f"MQTT Port: {mqtt_port}")
+logging.debug(f"MQTT Topic: {mqtt_topic}")
+logging.debug(f"MQTT User: {mqtt_user}")
+
+logging.debug(f"TTN Broker: {ttn_broker}")
+logging.debug(f"TTN Port: {ttn_port}")
+logging.debug(f"TTN Topic: {ttn_topic}")
+logging.debug(f"TTN User: {ttn_user}")
+
 # Properties to be stored in the database
 PROPERTIES = [
     "bin_id", "latitude", "longitude", "collection_frequency_per_month",
@@ -18,45 +43,42 @@ PROPERTIES = [
     "communication_status", "battery_level_percentage"
 ]
 
-# Configuration for multiple brokers, including TTN and Mosquitto
-mqtt_brokers = [
-    {
-        "host": os.environ.get('MQTT_BROKER'),
-        "port": int(os.environ.get('MQTT_PORT', 1883)),
-        "topic": os.environ.get('MQTT_TOPIC'),
-        "username": None,  # No authentication for Mosquitto test server
-        "password": None,
-        "is_ttn": False  # Indicate if broker is TTN (for decoding base64)
-    },
-    {
-        "host": os.environ.get('TTN_MQTT_BROKER'),
-        "port": int(os.environ.get('TTN_MQTT_PORT', 1883)),
-        "topic": os.environ.get('TTN_MQTT_TOPIC'),
-        "username": os.environ.get('TTN_MQTT_USER'),
-        "password": os.environ.get('TTN_MQTT_PASSWORD'),
-        "is_ttn": True  # TTN uses base64 encoded payloads
-    }
-]
+def is_valid_payload(payload):
+    """Validate the payload fields and types."""
+    required_fields = ['bin_id', 'fill_level_percentage', 'battery_level_percentage', 'temperature_celsius']
+    for field in required_fields:
+        if field not in payload:
+            logging.debug(f"Missing required field: {field}")
+            return False
 
-# Log environment variables to confirm they are being loaded correctly
-for broker in mqtt_brokers:
-    logging.debug(f"MQTT Broker: {broker['host']}")
-    logging.debug(f"MQTT Port: {broker['port']}")
-    logging.debug(f"MQTT Topic: {broker['topic']}")
-    if broker['username']:
-        logging.debug(f"MQTT User: {broker['username']}")
+    if not isinstance(payload.get('bin_id'), str):
+        logging.debug("Invalid bin_id: Must be a string.")
+        return False
+
+    fill_level = payload.get('fill_level_percentage')
+    if not (isinstance(fill_level, int) or isinstance(fill_level, float)) or not (0 <= fill_level <= 100):
+        logging.debug(f"Invalid fill_level_percentage: {fill_level}")
+        return False
+
+    battery_level = payload.get('battery_level_percentage')
+    if not (isinstance(battery_level, int) or isinstance(battery_level, float)) or not (0 <= battery_level <= 100):
+        logging.debug(f"Invalid battery_level_percentage: {battery_level}")
+        return False
+
+    temperature = payload.get('temperature_celsius')
+    if not (isinstance(temperature, int) or isinstance(temperature, float)) or not (-40 <= temperature <= 85):
+        logging.debug(f"Invalid temperature_celsius: {temperature}")
+        return False
+
+    return True
 
 def decode_payload(payload):
     try:
         message = json.loads(payload)
-        # Decode the base64 payload for TTN messages
         decoded_bytes = base64.b64decode(message['downlink_queued']['frm_payload']).decode('utf-8')
         logging.debug(f"Decoded bytes: {decoded_bytes}")
-
-        # Remove any extraneous characters (like '-n') before parsing
         if decoded_bytes.startswith('-n '):
             decoded_bytes = decoded_bytes[3:]  # Remove the '-n ' prefix
-
         return json.loads(decoded_bytes)
     except json.JSONDecodeError as e:
         logging.error(f"JSON decoding error: {e} - payload: {payload}")
@@ -65,25 +87,18 @@ def decode_payload(payload):
         logging.error(f"Error decoding payload: {e}")
         return None
 
-def on_message(client, userdata, message, is_ttn=False):
+def on_message(client, userdata, message):
     logging.debug(f"Received raw MQTT message: {message.payload}")
 
     try:
         payload = json.loads(message.payload)
         logging.debug(f"Decoded JSON payload: {payload}")
-
-        if is_ttn and 'downlink_queued' in payload and 'frm_payload' in payload['downlink_queued']:
-            # Handle TTN base64-encoded payload
-            decoded_payload = decode_payload(message.payload)
-            if decoded_payload:
-                payload = decoded_payload
-                logging.debug(f"Decoded TTN payload: {payload}")
     except json.JSONDecodeError:
         logging.debug("Received plain text message.")
         plain_text_message = message.payload.decode('utf-8')
         payload = {'message': plain_text_message}
 
-    if payload:
+    if payload and is_valid_payload(payload):
         with app.app_context():
             bin_id = payload.get('bin_id')
             if not bin_id:
@@ -111,53 +126,60 @@ def on_message(client, userdata, message, is_ttn=False):
                 logging.error(f"Error committing data to the database: {e}")
                 db.session.rollback()
 
-def on_connect(client, userdata, flags, reason_code, broker_config):
+def on_connect(client, userdata, flags, reason_code, properties=None):
     logging.debug(f"Connection result code: {reason_code}")
-    
     if reason_code == 0:
-        logging.debug(f"Connected to broker at {broker_config['host']}:{broker_config['port']}")
-        result, mid = client.subscribe(broker_config['topic'])
+        logging.debug(f"Connected to broker at {mqtt_broker}:{mqtt_port}")
+        result, mid = client.subscribe(mqtt_topic)
         if result == mqtt.MQTT_ERR_SUCCESS:
-            logging.debug(f"Subscribed to {broker_config['topic']} successfully.")
+            logging.debug(f"Subscribed to {mqtt_topic} successfully.")
         else:
-            logging.error(f"Failed to subscribe to {broker_config['topic']}, result code: {result}")
+            logging.error(f"Failed to subscribe to {mqtt_topic}, result code: {result}")
     else:
         logging.error(f"Failed to connect, reason code: {reason_code}")
 
-def mqtt_loop(broker_config):
+def mqtt_loop(broker, port, user, password, topic):
     client = mqtt.Client()
 
-    # Attach handlers
-    client.on_message = lambda client, userdata, message: on_message(client, userdata, message, is_ttn=broker_config["is_ttn"])
-    client.on_connect = lambda client, userdata, flags, reason_code: on_connect(client, userdata, flags, reason_code, broker_config)
+    client.on_message = on_message
+    client.on_connect = on_connect
 
     client.enable_logger()
 
-    if broker_config['username'] and broker_config['password']:
-        client.username_pw_set(broker_config['username'], broker_config['password'])
+    if user and password:
+        client.username_pw_set(user, password)
 
-    logging.debug(f"Connecting to broker {broker_config['host']} on port {broker_config['port']}...")
+    logging.debug(f"Connecting to broker {broker}...")
     try:
-        client.connect(broker_config['host'], broker_config['port'], 60)
+        client.connect(broker, port, 60)
     except Exception as e:
-        logging.error(f"Unable to connect to MQTT broker: {e}")
+        logging.error(f"Unable to connect to MQTT broker {broker}: {e}")
         return
 
+    client.subscribe(topic)
     client.loop_forever()
 
 def start_mqtt():
-    for broker in mqtt_brokers:
-        mqtt_thread = Thread(target=mqtt_loop, args=(broker,))
-        mqtt_thread.daemon = True  # Ensure the thread is killed when the main thread exits
-        mqtt_thread.start()
+    threads = []
 
-# Modify the app.run to ensure MQTT starts properly
+    if mqtt_broker:
+        mosquitto_thread = Thread(target=mqtt_loop, args=(mqtt_broker, mqtt_port, mqtt_user, mqtt_password, mqtt_topic))
+        mosquitto_thread.daemon = True
+        threads.append(mosquitto_thread)
+
+    if ttn_broker:
+        ttn_thread = Thread(target=mqtt_loop, args=(ttn_broker, ttn_port, ttn_user, ttn_password, ttn_topic))
+        ttn_thread.daemon = True
+        threads.append(ttn_thread)
+
+    for thread in threads:
+        thread.start()
+
 if __name__ != "__main__":
-    logging.debug("Starting MQTT clients for multiple brokers...")
+    logging.debug("Starting MQTT clients...")
     start_mqtt()
 
-# If running the app directly, start Flask and MQTT
 if __name__ == "__main__":
-    logging.debug("Starting Flask app and MQTT clients...")
+    logging.debug("Starting Flask app...")
     start_mqtt()
     app.run(host='0.0.0.0', port=5000)
