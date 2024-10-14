@@ -1,9 +1,11 @@
 #!/bin/bash
 
-# Ensure required environment variables are set
-if [ -z "$MQTT_BROKER" ] || [ -z "$MQTT_PORT" ] || [ -z "$MQTT_TOPIC" ]; then
-  echo "Error: Required environment variables are not set."
-  echo "Please set MQTT_BROKER, MQTT_PORT, MQTT_USER, MQTT_PASSWORD, and MQTT_TOPIC."
+# Ensure required environment variables are set for both Mosquitto and TTN
+if { [ -z "$MQTT_BROKER" ] || [ -z "$MQTT_PORT" ] || [ -z "$MQTT_TOPIC" ]; } && \
+   { [ -z "$TTN_MQTT_BROKER" ] || [ -z "$TTN_MQTT_PORT" ] || [ -z "$TTN_MQTT_TOPIC" ] || \
+     [ -z "$TTN_MQTT_USER" ] || [ -z "$TTN_MQTT_PASSWORD" ]; }; then
+  echo "Error: Required environment variables for both Mosquitto and TTN are not set."
+  echo "Please set the relevant variables for either MQTT (Mosquitto) or TTN."
   exit 1
 fi
 
