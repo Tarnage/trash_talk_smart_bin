@@ -98,7 +98,11 @@ def decode_payload(payload):
     """Decode the incoming payload."""
     try:
         message = json.loads(payload)
-        frm_payload = message['downlink_queued']['frm_payload']
+        frm_payload = message.get('downlink_queued', {}).get('frm_payload')
+        if not frm_payload:
+            logging.error("No frm_payload found in the payload.")
+            return None
+
         decoded_bytes = base64.b64decode(frm_payload).decode('utf-8')
         logging.debug(f"Decoded bytes: {decoded_bytes}")
 
