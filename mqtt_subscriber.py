@@ -96,6 +96,16 @@ def on_message(client, userdata, message):
     try:
         payload = json.loads(message.payload)
         logging.debug(f"Decoded JSON payload: {payload}")
+
+        # 提取 frm_payload 并解码
+        if 'downlink_queued' in payload and 'frm_payload' in payload['downlink_queued']:
+            frm_payload = payload['downlink_queued']['frm_payload']
+            decoded_payload = base64.b64decode(frm_payload).decode('utf-8')
+            logging.debug(f"Decoded frm_payload: {decoded_payload}")
+            payload = json.loads(decoded_payload)
+        else:
+            logging.debug("No frm_payload found in the message.")
+
     except json.JSONDecodeError:
         logging.debug("Received plain text message.")
         plain_text_message = message.payload.decode('utf-8')
@@ -104,7 +114,9 @@ def on_message(client, userdata, message):
     if payload and is_valid_payload(payload):
         with app.app_context():
             bin_id = payload.get('bin_id')
-            logging.debug(f"Processing data for bin_id: {bin_id}")
+            if not bin_id:
+                logging.debug("Missing bin_id in payload.")
+                return
             
             logging.debug(f"Looking up bin_id: {bin_id}")
             existing_bin = SmartBinData.query.filter_by(bin_id=bin_id).first()
@@ -126,6 +138,7 @@ def on_message(client, userdata, message):
             except Exception as e:
                 logging.error(f"Error committing data to the database: {e}")
                 db.session.rollback()
+
 
 def on_connect(client, userdata, flags, reason_code, properties=None):
     logging.debug(f"Connection result code: {reason_code}")
