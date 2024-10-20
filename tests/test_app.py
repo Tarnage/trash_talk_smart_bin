@@ -1,5 +1,5 @@
 import unittest
-from app import create_app, db, SmartBinData
+from backend.app import create_app, db, SmartBinData
 
 class TestFlaskApp(unittest.TestCase):
     @classmethod

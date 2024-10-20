@@ -2,8 +2,8 @@ import unittest
 import json
 import base64
 from unittest.mock import patch, MagicMock
-from app import app, db, SmartBinData
-from mqtt_subscriber import decode_payload, is_valid_payload, on_message
+from backend.app import app, db, SmartBinData
+from backend.mqtt_subscriber import decode_payload, is_valid_payload, on_message
 
 class TestMQTTSubscriber(unittest.TestCase):
 
