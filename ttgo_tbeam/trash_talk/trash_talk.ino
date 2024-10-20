@@ -9,28 +9,24 @@
 
 const int trigPin = 32; 
 const int echoPin = 33; 
-const float soundSpeed = 0.0343; 
+const float soundSpeed = 0.0343;
+const int bin_size = 100; 
+const int tiltPin = 35; 
 
 // WiFi and MQTT Broker details
-const char* ssid = "Redmi Note 12 Turbo_RztmzmK_MI";  
-const char* password = "gno6xmdvgn";  
-const char* mqtt_server = "test.mosquitto.org";  
+const char* ssid = "";   
+const char* password = "";  
+const char* mqtt_server = "";  
 const int mqtt_port = 1883;
-const char* mqtt_topic = "v3/smart-bin-mqtt-server@ttn/devices/smart-bin-dev/down/push";
-
+const char* mqtt_topic = "";
 
 TinyGPSPlus gps;
 HardwareSerial GPS(1);  
 AXP20X_Class axp;
 
-
-const int tiltPin = 35; 
-
 #define MLX90614_I2C_ADDR 0x5A   
 DFRobot_MLX90614_I2C sensor(MLX90614_I2C_ADDR, &Wire);  
 
-
-int bin_size = 100;
 WiFiClient espClient;
 PubSubClient client(espClient);
 long lastMsg = 0;
@@ -39,21 +35,17 @@ char msg[100];
 void setup() {
   
   Serial.begin(115200);
-
   
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
 
-  
-  pinMode(tiltPin, INPUT);
 
+  pinMode(tiltPin, INPUT);
   
   setup_wifi();
   client.setServer(mqtt_server, mqtt_port);  
 
-  
   setup_gps();
-
   
   while (NO_ERR != sensor.begin()) {
     Serial.println("Communication with device failed, please check connection");
@@ -61,12 +53,10 @@ void setup() {
   }
   Serial.println("Begin ok!");
 
-  
   sensor.setEmissivityCorrectionCoefficient(1.0);
   sensor.setI2CAddress(0x5A);
   sensor.setMeasuredParameters(sensor.eIIR100, sensor.eFIR1024);
 
-  
   sensor.enterSleepMode();
   delay(50);
   sensor.enterSleepMode(false);
@@ -115,17 +105,14 @@ void setup_gps() {
     Serial.println("AXP192 Begin FAIL");
   }
 
-  
   axp.setPowerOutPut(AXP192_LDO2, AXP202_ON);
   axp.setPowerOutPut(AXP192_LDO3, AXP202_ON);
   axp.setPowerOutPut(AXP192_DCDC2, AXP202_ON);
   axp.setPowerOutPut(AXP192_EXTEN, AXP202_ON);
   axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON);
 
-  
   GPS.begin(9600, SERIAL_8N1, 34, 12);  
 }
-
 
 float getDistance() {
   digitalWrite(trigPin, LOW);  
